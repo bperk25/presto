@@ -1,3 +1,11 @@
+import numpy as np
+
+class Staff:
+    def __init__(self, id, y_coords) -> None:
+        self.id = id
+        self.y_coords = y_coords
+        self.step_size = float(np.mean(np.diff(y_coords)))
+        self.spacer = float(np.mean(np.diff(y_coords))) / 4
 
 
 class Note:
