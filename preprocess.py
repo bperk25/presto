@@ -105,7 +105,7 @@ def find_blobs(img, display=False):
 
 # crop full-sized image to just a window containing the note corresponding
 # to the note blob
-def crop_to_note(blob, full_img, i):
+def crop_to_note(blob, full_img):
     x, y = blob.pt
     lr_space = blob.size + 5  # pixels left and right of center of blob to include
     ud_space = blob.size + 30  # pixels below and above center of blob to include
@@ -113,19 +113,20 @@ def crop_to_note(blob, full_img, i):
     cropped_img = full_img[int(y - ud_space): int(y + ud_space),
                   int(x - lr_space): int(x + lr_space)]
 
-    cv2.imwrite('cropped_note_imgs/note_' + str(i) + '.png', cropped_img)
-
     return cropped_img
 
 
 # crop all blobs to images of individual notes
 # return list of cropped images
-def get_cropped_notes(blobs, full_img):
+def get_cropped_notes(blobs, full_img, save=False):
     cropped_notes = []
 
     for i, blob in enumerate(blobs):
-        cropped = crop_to_note(blob, full_img, i)
+        cropped = crop_to_note(blob, full_img)
         cropped_notes.append(cropped)
+
+        if save:
+            cv2.imwrite('cropped_note_imgs/note_' + str(i) + '.png', cropped)
 
     return cropped_notes
 
