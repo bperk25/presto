@@ -1,21 +1,22 @@
-from edge import canny
+# from edge import canny
 import cv2
 import os
 import math
 import numpy as np
 import matplotlib.pyplot as plt
-from dataclasses import dataclass
+from musics import Note
+# from dataclasses import dataclass
 
-@dataclass
-class Note:
-    x: int
-    y: int
-    staff: int
-    letter: str
-    time: str
-    note_img: np.ndarray
+# @dataclass
+# class Note:
+#     x: int
+#     y: int
+#     staff: int
+#     letter: str
+#     time: str
+#     note_img: np.ndarray
 
-notes = dict()  # dictionary of {int noteID num : Note class instance}
+# notes = dict()  # dictionary of {int noteID num : Note class instance}
 
 
 # reads input file as a numpy image
@@ -130,4 +131,88 @@ def get_cropped_notes(blobs, full_img, save=False):
 
     return cropped_notes
 
+
+## ---------  Line Detection  -------------
+
+# canny on crack
+def horizontal_canny(img):
+    img = cv2.Canny(img, 100, 100)
+    horizontal_kernel = np.ones((1, 13), np.uint8)
+    horizontal_lines = cv2.erode(img, horizontal_kernel, iterations=2)
+    return horizontal_lines
+
+'''
+    Finds y coordinates of staff lines using HoughLines
+    input:
+        img -> cv2 original sheet music image
+        edges -> super_canny version of sheet music
+        min_gap -> minimum distance between line y coordinates
+        show_img -> flag to show image with lines drawn
+
+    output:
+        ys -> y coordinates of lines found
+'''
+def get_line_coords(img, edges, min_gap = 3, show_img=False):
+    # Get lines using cv2's HoughLinesP: 
+    # https://docs.opencv.org/3.4/dd/d1a/group__imgproc__feature.html#ga8618180a5948286384e3b7ca02f6feeb
+    lines = cv2.HoughLinesP(edges, 1, np.pi/180, 2, minLineLength=edges.shape[0]//50)
+    lines = sorted(lines.tolist(), key=lambda x: x[0][1])   # sort by y coord
+    ys = [-100] # start with -100 for first y1 check; never in range with reasonable thresh val 
+
+    # Filter lines based on proximity to previous line
+    for line in lines:
+        x1, y1, x2, y2 = line[0]
+        low_thresh = ys[-1] - min_gap
+        hi_thresh = ys[-1] + min_gap + 1
+        if y1 not in range(low_thresh, hi_thresh):
+            # cv2.line(img, (x1, y1), (x2, y2), (255, 0, 0), 1)
+            cv2.line(img, (0, y1), (edges.shape[0]//2, y2), (255, 0, 0), 1)
+            ys.append(y1)
+
+    if show_img: 
+        cv2.imshow("Lines Found", img)
+        cv2.waitKey(0)
+
+    ys = ys[1:] # remove dummy value of -100
+    ys = refine_line_coords(ys)
+    return ys
+
+'''
+    Removes outlier lines from y coordinates
+    input:
+        ys -> y coordinates found
+    outpus: 
+        refined_ys -> ys with outliers removed
+'''
+def refine_line_coords(ys):
+    gaps = [ys[i + 1] - ys[i] for i in range(len(ys) - 1)]
+    avg_gap = np.mean(gaps) * .8
+    max_gap = np.mean([y for y in gaps if y < avg_gap]) * 1.2
+
+    refined_ys = []
+    for i in range(len(ys)):
+        cur_y = ys[i]
+        dif_above = ys[i] - ys[i - 1] if i > 0 else max_gap + 1
+        dif_below = ys[i + 1] - ys[i] if i < len(ys) - 1 else max_gap + 1
+        if dif_above <= max_gap or dif_below <= max_gap:
+            print((max_gap, dif_above, dif_below))
+            refined_ys.append(ys[i])
+
+    return refined_ys
+
+
+'''
+# See result for Line Detection
+## Good files: Mary_Had_A_Little_Lamb, Thinking_Out_Loud
+## Bad files: The_Entertainer, Hallelujah, Somebody_to_love (meh)
+img = cv2.imread('sheet_music/Thinking_Out_Loud.png')
+hor_lines = horizontal_canny(img.copy())
+ys = get_line_coords(img.copy(), hor_lines.copy(), min_gap=5, show_img=False)
+ys = refine_line_coords(ys)
+for y in ys:
+    cv2.line(img, (0, y), (100, y), (255, 0, 0), 1)
+cv2.imshow("Refined", img)
+cv2.waitKey(0)
+print(len(ys))
+'''
 
