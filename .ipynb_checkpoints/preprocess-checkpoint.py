@@ -135,6 +135,25 @@ def get_cropped_notes(blobs, full_img, save=False):
     return cropped_notes
 
 
+##  ---------  Line Removal  -------------
+'''
+    Remove horizontal lines from input img
+    input:
+        img -> cv2 original sheet music image
+        len -> length of kernel line
+        kern_size -> size of blur kernel
+        sig -> sigma for Gaussian blur
+
+    output:
+        no_lines -> image reconstructed around removed lines
+'''
+def remove_horizontal(img, len=13, kern_size=5, sig=0):
+    hor_lines = horizontal_canny(img.copy(), len)
+    hor_lines = cv2.GaussianBlur(hor_lines, (kern_size, kern_size), sig)
+    no_lines = img*(hor_lines == 0) + 255*(hor_lines > 0)
+    return np.uint8(no_lines)
+
+
 ## ---------  Line Detection  -------------
 
 # canny on crack
