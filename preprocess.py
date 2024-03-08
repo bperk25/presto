@@ -45,6 +45,8 @@ def display_imgs(imgs, titles=[]):
         if titles:
             plt.title(titles[index])
 
+    plt.show()
+
 
 # Set parameters for blob detector
 def set_blob_params(img_shape):
@@ -53,14 +55,14 @@ def set_blob_params(img_shape):
     # Set our filtering parameters
     # Initialize parameter setting using cv2.SimpleBlobDetector
     params = cv2.SimpleBlobDetector_Params()
-
+    '''
     # Set Area filtering parameters
     params.filterByArea = True
     # 16 pixel note blob height on img of height 1552 pixels --> use 12 pixels for min area, 18 for max
     # use ratio of note height:img height, then scale to height of current image
     # divide by 2 to get radius instead of diameter
-    min_pixel_radius = int(((12 / 1552) * H) / 2)
-    max_pixel_radius = int(((18 / 1552) * H) / 2)
+    min_pixel_radius = int(((10 / 1552) * H) / 2)
+    max_pixel_radius = int(((20 / 1552) * H) / 2)
     # compute min area from estimated pixel radius of note blob
     params.minArea = int(min_pixel_radius ** 2 * np.pi)
     params.maxArea = int(max_pixel_radius ** 2 * np.pi)
@@ -68,7 +70,8 @@ def set_blob_params(img_shape):
     # Set Circularity filtering parameters
     params.filterByCircularity = True
     params.minCircularity = 0.7
-    params.maxCircularity = 0.85
+    params.maxCircularity = 0.8
+    '''
 
     return params
 
