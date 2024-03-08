@@ -223,19 +223,3 @@ def refine_line_coords(ys):
     return refined_ys
 
 
-'''
-# See result for Line Detection
-## Good files: Mary_Had_A_Little_Lamb, Thinking_Out_Loud
-## Bad files: The_Entertainer, Hallelujah, Somebody_to_love (meh)
-img = cv2.imread('sheet_music/Thinking_Out_Loud.png')
-hor_lines = horizontal_canny(img.copy())
-ys = get_line_coords(img.copy(), hor_lines.copy(), min_gap=5, show_img=False)
-ys = refine_line_coords(ys)
-for y in ys:
-    cv2.line(img, (0, y), (100, y), (255, 0, 0), 1)
-cv2.imshow("Refined", img)
-cv2.waitKey(0)
-print(len(ys))
-
-'''
-
