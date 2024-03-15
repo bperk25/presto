@@ -5,22 +5,28 @@ import matplotlib.pyplot as plt
 from musics import Note
 from collections import defaultdict 
 
-# train model (if needed), then load it
-def initialize_model(trained=True):
-    if not trained:
-        # Load a base model
-        model = YOLO('yolov8n-cls.yaml')  # build a new model from YAML
-        model = YOLO('yolov8n-cls.pt')  # load a pretrained model (recommended for training)
-        model = YOLO('yolov8n-cls.yaml').load('yolov8n-cls.pt')  # build from YAML and transfer weights
-    
-        # Train the model
-        results = model.train(data='/Users/bryantperkins/Documents/CS/CS131/FinalProject/Code/presto/datasets/notes_dataset', epochs=100, imgsz=64)
+# train YOLO classification model
+def train_model(data='/Users/bryantperkins/Documents/CS/CS131/FinalProject/Code/presto/datasets/notes_dataset'):
+    # Load a base model
+    model = YOLO('yolov8n-cls.yaml')  # build a new model from YAML
+    model = YOLO('yolov8n-cls.pt')  # load a pretrained model (recommended for training)
+    model = YOLO('yolov8n-cls.yaml').load('yolov8n-cls.pt')  # build from YAML and transfer weights
 
+    # Train the model
+    results = model.train(data=data, epochs=100, imgsz=64)
+
+
+# load chosen trained model
+def initialize_model():
     model = YOLO('./runs/classify/train3/weights/best.pt')  # load a trained model
-    
     return model
 
+
+# TODO delete if not used
 # predict time of note image
+# one of 5 classes (eighth, half, quarter, sixteenth, whole)
+# model: trained YOLO model to use in prediction
+# predict_dir: directory of image to predict on
 def predict(model, predict_dir):
     # Predict with the model
     results = model(predict_dir)  # predict on an image
@@ -32,7 +38,27 @@ def predict(model, predict_dir):
     
     return names_dict, probs
 
-## ---------  Configure Notes  -------------
+
+# predict time of note using yolo model & update each note obj's time attribute
+# NOTE: notes_objs must be in same order as notes_imgs
+def set_note_times(model, notes_imgs, notes_objs, predict_dir='cropped_note_imgs/', predict_from_dir=False):
+    # if predicting on all imgs saved as files in directory predict_dir
+    if predict_from_dir:
+        # for all cropped note imgs in predict dir
+        note_files = [predict_dir + file for file in os.listdir(predict_dir)]
+        # predict time of all note imgs
+        results = model(note_files)
+    # if using passed in numpy/cv2 imgs
+    else:
+        # predict time of all note imgs
+        results = model(note_imgs)
+
+    # add predicted time to corresponding note attribute
+    for i, result in enumerate(results.names):
+        notes_objs[i].time = result
+        
+
+## ---------  Configure Notes  ------------- ##
 C_MAJOR = ["C", "D", "E", "F", "G", "A", "B"]
 
 '''
