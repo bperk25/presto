@@ -5,18 +5,6 @@ import math
 import numpy as np
 import matplotlib.pyplot as plt
 from musics import Note
-# from dataclasses import dataclass
-
-# @dataclass
-# class Note:
-#     x: int
-#     y: int
-#     staff: int
-#     letter: str
-#     time: str
-#     note_img: np.ndarray
-
-# notes = dict()  # dictionary of {int noteID num : Note class instance}
 
 
 # reads input file as a numpy image
@@ -55,7 +43,7 @@ def set_blob_params(img_shape):
     # Set our filtering parameters
     # Initialize parameter setting using cv2.SimpleBlobDetector
     params = cv2.SimpleBlobDetector_Params()
-    '''
+
     # Set Area filtering parameters
     params.filterByArea = True
     # 16 pixel note blob height on img of height 1552 pixels --> use 12 pixels for min area, 18 for max
@@ -70,8 +58,7 @@ def set_blob_params(img_shape):
     # Set Circularity filtering parameters
     params.filterByCircularity = True
     params.minCircularity = 0.7
-    params.maxCircularity = 0.8
-    '''
+    params.maxCircularity = 0.85
 
     return params
 
@@ -88,7 +75,7 @@ def find_blobs(img, display=False):
     # Detect blobs
     keypoints = detector.detect(img)
 
-    # Draw detected blobs as blue circles
+    # Draw detected blobs as colored circles
     # cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS ensures the size of the circle corresponds to the size of blob
     img_w_keypts = cv2.drawKeypoints(img.copy(), keypoints, np.array([]), (0, 0, 255),
                                      cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
@@ -99,7 +86,7 @@ def find_blobs(img, display=False):
         plt.axis('off')
         plt.show()
 
-        display_imgs([img], ["original"])
+        display_imgs([img, img_w_keypts], ["original", "identified notes"])
 
     # clean up once processes is done
     cv2.destroyAllWindows()
@@ -107,6 +94,19 @@ def find_blobs(img, display=False):
     return keypoints
 
 
+# create note objects from identified notes (blobs) and assign x, y attributes
+# return list of note objects
+def create_note_objs(blobs):
+    note_objs = []
+    
+    for blob in blobs:
+        x, y = blob.pt
+        note_obj = Note(x, y)
+        note_objs.append(note_obj)
+
+    return note_objs
+
+    
 # crop full-sized image to just a window containing the note corresponding
 # to the note blob
 def crop_to_note(blob, full_img):
@@ -134,8 +134,6 @@ def get_cropped_notes(blobs, full_img, save=False):
 
     return cropped_notes
 
-##  ---------  Line Removal  -------------
-
 
 ##  ---------  Line Removal  -------------
 '''
@@ -156,6 +154,30 @@ def remove_horizontal(img, len=13, kern_size=5, sig=0):
     return np.uint8(no_lines)
 
 
+# TODO change so its not a direct copy paste from here
+# https://stackoverflow.com/questions/46274961/removing-horizontal-lines-in-image-opencv-python-matplotlib
+def remove_horizontal2(img, len=25):
+    gray = img
+    # thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
+    thresh = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY)
+    
+    # Remove horizontal
+    horizontal_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (len,1))
+    detected_lines = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, horizontal_kernel, iterations=2)
+    cnts = cv2.findContours(detected_lines, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    cnts = cnts[0] if len(cnts) == 2 else cnts[1]
+    for c in cnts:
+        cv2.drawContours(img, [c], -1, (255,255,255), 2)
+    
+    # Repair image
+    repair_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1,6))
+    result = 255 - cv2.morphologyEx(255 - img, cv2.MORPH_CLOSE, repair_kernel, iterations=1)
+
+    display_imgs([thresh, detected_lines, img, result], ["thresh", "detected_lines", "image", "result"])
+
+    return result
+
+
 ## ---------  Line Detection  -------------
 
 # canny on crack
@@ -164,6 +186,7 @@ def horizontal_canny(img, len=13):
     horizontal_kernel = np.ones((1, len), np.uint8)
     horizontal_lines = cv2.erode(img, horizontal_kernel, iterations=2)
     return horizontal_lines
+
 
 '''
     Finds y coordinates of staff lines using HoughLines
@@ -176,7 +199,7 @@ def horizontal_canny(img, len=13):
     output:
         ys -> y coordinates of lines found
 '''
-def get_line_coords(img, edges, min_gap = 3, show_img=False):
+def get_line_coords(img, edges, min_gap=3, show_img=False):
     # Get lines using cv2's HoughLinesP: 
     # https://docs.opencv.org/3.4/dd/d1a/group__imgproc__feature.html#ga8618180a5948286384e3b7ca02f6feeb
     lines = cv2.HoughLinesP(edges, 1, np.pi/180, 2, minLineLength=edges.shape[0]//50)
@@ -201,6 +224,7 @@ def get_line_coords(img, edges, min_gap = 3, show_img=False):
     ys, avg = refine_line_coords(ys)
     return ys, avg
 
+
 '''
     Removes outlier lines from y coordinates
     input:
@@ -208,7 +232,7 @@ def get_line_coords(img, edges, min_gap = 3, show_img=False):
     outpus: 
         refined_ys -> ys with outliers removed
 '''
-def refine_line_coords(ys: list[float]) -> list[float]:
+def refine_line_coords(ys: List[float]) -> List[float]:
     gaps = [ys[i + 1] - ys[i] for i in range(len(ys) - 1)]
     avg_gap = np.mean(gaps) * .8
     max_gap = np.mean([y for y in gaps if y < avg_gap]) * 1.2
@@ -224,6 +248,7 @@ def refine_line_coords(ys: list[float]) -> list[float]:
             refined_ys.append(ys[i])
 
     return refined_ys, avg_gap
+
 
 def get_base_lines(img, edges, min_gap=3, show_img=False):
     ys, avg = get_line_coords(img, edges, min_gap, show_img)
