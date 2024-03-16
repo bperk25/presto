@@ -42,39 +42,53 @@ def display_imgs(imgs, titles=[]):
 
 # Set parameters for blob detector
 def set_blob_params(img_shape):
-    H, W = img_shape
+    H, W = img_shape[:2]
 
     # Set our filtering parameters
     # Initialize parameter setting using cv2.SimpleBlobDetector
     params = cv2.SimpleBlobDetector_Params()
 
-    # Set Area filtering parameters
-    params.filterByArea = True
-    # 16 pixel note blob height on img of height 1552 pixels --> use 12 pixels for min area, 18 for max
-    # use ratio of note height:img height, then scale to height of current image
-    # divide by 2 to get radius instead of diameter
-    min_pixel_radius = int(((10 / 1552) * H) / 2)
-    max_pixel_radius = int(((20 / 1552) * H) / 2)
-    # compute min area from estimated pixel radius of note blob
-    params.minArea = int(min_pixel_radius ** 2 * np.pi)
-    params.maxArea = int(max_pixel_radius ** 2 * np.pi)
+    params.filterByConvexity = False
+
+    # # Set Area filtering parameters -- TODO test to see if necessary, or set by width instead
+    # params.filterByArea = True
+    # # 16 pixel note blob height on img of height 1552 pixels --> use 12 pixels for min area, 18 for max
+    # # use ratio of note height:img height, then scale to height of current image
+    # # divide by 2 to get radius instead of diameter
+    # min_pixel_radius = int(((10 / 1552) * H) / 2)
+    # max_pixel_radius = int(((20 / 1552) * H) / 2)
+    # # compute min area from estimated pixel radius of note blob
+    # params.minArea = int(min_pixel_radius ** 2 * np.pi)
+    # params.maxArea = int(max_pixel_radius ** 2 * np.pi)
 
     # Set Circularity filtering parameters
     params.filterByCircularity = True
     params.minCircularity = 0.7
     params.maxCircularity = 0.85
 
+    # Set Inertia filtering parameters
+    params.filterByInertia = True
+    params.maxInertiaRatio = 0.6
+
+    # for debugging purposes, disable all filters -- TODO delete
+    # params.filterByCircularity = False
+    params.filterByArea = False
+    # params.filterByInertia = False
+    
     return params
 
 
 # Finds blobs of notes in image
-# inputs: smoothed/filtered image, whether to display image or not
+# inputs: image with horizontal lines removed, whether to display image or not
 # output: found keypoints for note blobs
 def find_blobs(img, display=False):
     params = set_blob_params(img.shape)
 
-    # Set up the detector with default parameters
+    # Set up the detector with parameters
     detector = cv2.SimpleBlobDetector_create(params)
+
+    kernel = np.ones((2, 1),np.uint8)
+    img = cv2.erode(img,kernel,iterations = 1)
 
     # Detect blobs
     keypoints = detector.detect(img)
@@ -160,7 +174,7 @@ def remove_horizontal(img, len=13, kern_size=5, sig=0):
 
 # remove horizontal (staff) lines from image
 # https://stackoverflow.com/questions/46274961/removing-horizontal-lines-in-image-opencv-python-matplotlib
-def remove_horizontal2(img, gray, len=25):
+def remove_horizontal2(img, gray):
     thresh = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY_INV)[1]
     
     # Remove horizontal
@@ -179,6 +193,19 @@ def remove_horizontal2(img, gray, len=25):
 
     # display results
     # display_imgs([img, thresh, detected_lines_img, no_lines, result], ["image", "thresh", "detected lines", "contour img", "result"])
+
+    return result
+
+
+# remove vertical (note verticals) lines from image
+# expects image with horizontals already removed
+def remove_vertical(img):
+    invert_img = cv2.bitwise_not(img)  # convert to white being notes
+    
+    kernel = np.ones((5, 5),np.uint8)  # create kernel
+    result = cv2.erode(invert_img,kernel,iterations = 1)  # erode image with kernel
+    
+    result = cv2.bitwise_not(result)  # convert back to black being notes
 
     return result
 
