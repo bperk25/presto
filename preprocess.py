@@ -8,15 +8,19 @@ from musics import Note
 
 
 # reads input file as a numpy image
-# returns grayscale version of image, and guassian blurred image
+# returns grayscale version of image, and gaussian blurred image
 def filter_img(input_file):
     # open img & convert frame to grayscale
-    img = cv2.imread(input_file, cv2.IMREAD_GRAYSCALE)
+    img = cv2.imread(input_file)
+
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
     # smooth image using gaussian smoothing and parameters found before
-    smoothed = cv2.GaussianBlur(img, (7, 7), 1.4)  # kernel size 7x7, sigma 1.4
+    smoothed = cv2.GaussianBlur(gray, (7, 7), 1.4)  # kernel size 7x7, sigma 1.4
 
-    return img, smoothed
+    black_white = (255*(gray > 127)).astype('uint8')
+
+    return img, gray, smoothed, black_white
 
 
 # display all images in imgs
@@ -27,7 +31,7 @@ def display_imgs(imgs, titles=[]):
     num_rows = math.ceil(len(imgs) / num_imgs_per_row)  # num rows needed
 
     for index, img in enumerate(imgs):
-        plt.subplot(num_rows, num_imgs_per_row, index + 1)
+        plt.subplot(num_imgs_per_row, num_rows, index + 1)
         plt.imshow(img)
         plt.axis('off')
         if titles:
@@ -154,26 +158,27 @@ def remove_horizontal(img, len=13, kern_size=5, sig=0):
     return np.uint8(no_lines)
 
 
-# TODO change so its not a direct copy paste from here
+# remove horizontal (staff) lines from image
 # https://stackoverflow.com/questions/46274961/removing-horizontal-lines-in-image-opencv-python-matplotlib
-def remove_horizontal2(img, len=25):
-    gray = img
-    # thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
-    thresh = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY)
+def remove_horizontal2(img, gray, len=25):
+    thresh = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY_INV)[1]
     
     # Remove horizontal
-    horizontal_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (len,1))
-    detected_lines = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, horizontal_kernel, iterations=2)
-    cnts = cv2.findContours(detected_lines, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    cnts = cnts[0] if len(cnts) == 2 else cnts[1]
-    for c in cnts:
-        cv2.drawContours(img, [c], -1, (255,255,255), 2)
+    # create row kernel that's half the width of the image
+    horizontal_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (int(img.shape[1]*.5), 1))
+    # apply kernel to threshold image to find horizontal lines
+    detected_lines_img = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, horizontal_kernel, iterations=1)
+    # find contours (lines) from detected lines image
+    contours, hierarchy = cv2.findContours(detected_lines_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    # draw contours as white on image (aka erase lines)
+    no_lines = cv2.drawContours(img.copy(), contours, -1, (255, 255, 255), 2)
     
-    # Repair image
+    # Repair image (notes)
     repair_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1,6))
-    result = 255 - cv2.morphologyEx(255 - img, cv2.MORPH_CLOSE, repair_kernel, iterations=1)
+    result = 255 - cv2.morphologyEx(255 - no_lines, cv2.MORPH_CLOSE, repair_kernel, iterations=1)
 
-    display_imgs([thresh, detected_lines, img, result], ["thresh", "detected_lines", "image", "result"])
+    # display results
+    # display_imgs([img, thresh, detected_lines_img, no_lines, result], ["image", "thresh", "detected lines", "contour img", "result"])
 
     return result
 
@@ -232,7 +237,7 @@ def get_line_coords(img, edges, min_gap=3, show_img=False):
     outpus: 
         refined_ys -> ys with outliers removed
 '''
-def refine_line_coords(ys: List[float]) -> List[float]:
+def refine_line_coords(ys: list[float]) -> list[float]:
     gaps = [ys[i + 1] - ys[i] for i in range(len(ys) - 1)]
     avg_gap = np.mean(gaps) * .8
     max_gap = np.mean([y for y in gaps if y < avg_gap]) * 1.2
