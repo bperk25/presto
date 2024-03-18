@@ -51,15 +51,15 @@ def set_blob_params(img_shape):
     params.filterByConvexity = False
 
     # # Set Area filtering parameters -- TODO test to see if necessary, or set by width instead
-    # params.filterByArea = True
-    # # 16 pixel note blob height on img of height 1552 pixels --> use 12 pixels for min area, 18 for max
+    params.filterByArea = True
+    # # 16 pixel note blob height on img of width 1258 pixels --> use 10 pixels for min area, 20 for max
     # # use ratio of note height:img height, then scale to height of current image
     # # divide by 2 to get radius instead of diameter
-    # min_pixel_radius = int(((10 / 1552) * H) / 2)
-    # max_pixel_radius = int(((20 / 1552) * H) / 2)
+    min_pixel_radius = int(((8 / 1258) * W) / 2)
+    max_pixel_radius = int(((25 / 1258) * W) / 2)
     # # compute min area from estimated pixel radius of note blob
-    # params.minArea = int(min_pixel_radius ** 2 * np.pi)
-    # params.maxArea = int(max_pixel_radius ** 2 * np.pi)
+    params.minArea = int(min_pixel_radius ** 2 * np.pi)
+    params.maxArea = int(max_pixel_radius ** 2 * np.pi)
 
     # Set Circularity filtering parameters
     params.filterByCircularity = True
@@ -72,7 +72,7 @@ def set_blob_params(img_shape):
 
     # for debugging purposes, disable all filters -- TODO delete
     # params.filterByCircularity = False
-    params.filterByArea = False
+    # params.filterByArea = False
     # params.filterByInertia = False
     
     return params
@@ -175,13 +175,13 @@ def remove_horizontal(img, len=13, kern_size=5, sig=0):
 # remove horizontal (staff) lines from image
 # https://stackoverflow.com/questions/46274961/removing-horizontal-lines-in-image-opencv-python-matplotlib
 def remove_horizontal2(img, gray):
-    thresh = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY_INV)[1]
+    thresh = cv2.threshold(gray.copy(), 127, 255, cv2.THRESH_BINARY_INV)[1]
     
     # Remove horizontal
     # create row kernel that's half the width of the image
     horizontal_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (int(img.shape[1]*.5), 1))
     # apply kernel to threshold image to find horizontal lines
-    detected_lines_img = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, horizontal_kernel, iterations=1)
+    detected_lines_img = cv2.morphologyEx(thresh.copy(), cv2.MORPH_OPEN, horizontal_kernel, iterations=1)
     # find contours (lines) from detected lines image
     contours, hierarchy = cv2.findContours(detected_lines_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     # draw contours as white on image (aka erase lines)

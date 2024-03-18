@@ -22,26 +22,9 @@ def initialize_model():
     return model
 
 
-# TODO delete if not used
-# predict time of note image
-# one of 5 classes (eighth, half, quarter, sixteenth, whole)
-# model: trained YOLO model to use in prediction
-# predict_dir: directory of image to predict on
-def predict(model, predict_dir):
-    # Predict with the model
-    results = model(predict_dir)  # predict on an image
-    names_dict = results[0].names
-    probs = results[0].probs
-    
-    print(names_dict)
-    print(probs)
-    
-    return names_dict, probs
-
-
 # predict time of note using yolo model & update each note obj's time attribute
 # NOTE: notes_objs must be in same order as notes_imgs
-def set_note_times(model, notes_imgs, notes_objs, predict_dir='cropped_note_imgs/', predict_from_dir=False):
+def predict_note_times(model, notes_imgs, notes_objs, predict_dir='cropped_note_imgs/', predict_from_dir=False):
     # if predicting on all imgs saved as files in directory predict_dir
     if predict_from_dir:
         # for all cropped note imgs in predict dir
@@ -51,11 +34,12 @@ def set_note_times(model, notes_imgs, notes_objs, predict_dir='cropped_note_imgs
     # if using passed in numpy/cv2 imgs
     else:
         # predict time of all note imgs
-        results = model(note_imgs)
+        results = model(notes_imgs)
 
     # add predicted time to corresponding note attribute
-    for i, result in enumerate(results.names):
-        notes_objs[i].time = result
+    for i, result in enumerate(results):
+        # assign time as most likely time
+        notes_objs[i].time = result.names[0]
         
 
 ## ---------  Configure Notes  ------------- ##
