@@ -129,8 +129,10 @@ def create_note_objs(blobs):
 # to the note blob
 def crop_to_note(blob, full_img):
     x, y = blob.pt
-    lr_space = blob.size + 5  # pixels left and right of center of blob to include
-    ud_space = blob.size + 30  # pixels below and above center of blob to include
+    H, W = full_img.shape[:2]
+    
+    lr_space = blob.size + int(((12 / 1258) * W))  # pixels left and right of center of blob to include
+    ud_space = blob.size + int(((40 / 1258) * W))  # pixels below and above center of blob to include
 
     cropped_img = full_img[int(y - ud_space): int(y + ud_space),
                   int(x - lr_space): int(x + lr_space)]
@@ -194,7 +196,7 @@ def remove_horizontal2(img, gray):
     # display results
     # display_imgs([img, thresh, detected_lines_img, no_lines, result], ["image", "thresh", "detected lines", "contour img", "result"])
 
-    return result
+    return result, no_lines
 
 
 # remove vertical (note verticals) lines from image
