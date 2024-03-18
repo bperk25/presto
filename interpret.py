@@ -38,8 +38,9 @@ def predict_note_times(model, notes_imgs, notes_objs, predict_dir='cropped_note_
 
     # add predicted time to corresponding note attribute
     for i, result in enumerate(results):
+        most_likely_i = result.probs.top1
         # assign time as most likely time
-        notes_objs[i].time = result.names[0]
+        notes_objs[i].time = result.names[most_likely_i]
         
 
 ## ---------  Configure Notes  ------------- ##
