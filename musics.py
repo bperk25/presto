@@ -23,7 +23,7 @@ class Note:
         print(f"Position: ({self.x}, {self.y})")
         print(f"Key: {self.key}")
         print(f"Accidental: {'Sharp' if self.accidental == 1 else 'None' if self.accidental == 0 else 'Flat'}")
-        print(f"Staff ID {self.staff_id}")
+        print(f"Staff ID: {self.staff_id}")
         print(f"Time: {self.time}")
 
     
