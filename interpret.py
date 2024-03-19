@@ -43,7 +43,7 @@ def predict_note_times(model, notes_imgs, notes_objs, predict_dir='cropped_note_
         notes_objs[i].time = result.names[most_likely_i]
         
 
-## ---------  Configure Notes  ------------- ##
+## ---------  Configure Notes  -------------
 C_MAJOR = ["C", "D", "E", "F", "G", "A", "B"]
 
 '''
@@ -66,7 +66,7 @@ def create_staff_dict(base_lines: list[float], note_set: list[Note],
         lowest = line + (gap_size * 1.5)
         while(note_set[i].y < lowest and i < len(note_set) - 1):
             i+= 1
-        staff_dict[staff_id] = note_set[:i]
+        staff_dict[staff_id] = sorted(note_set[:i], key=lambda n: n.x)
         note_set = note_set[i:]
         staff_id += 1
 
@@ -124,5 +124,6 @@ def config_notes(base_lines: list[float], note_set: list[Note], gap_size: float,
                         note.id = note_count
                         note.key = key
                         note_count += 1
+
 
 
