@@ -110,11 +110,12 @@ def find_blobs(img, display=False):
 # create note objects from identified notes (blobs) and assign x, y attributes
 # return list of note objects
 def create_note_objs(blobs):
+    Y_OFFSET = 3
     note_objs = []
     
     for blob in blobs:
         x, y = blob.pt
-        note_obj = Note(x, y)
+        note_obj = Note(x, y - Y_OFFSET)
         note_objs.append(note_obj)
 
     return note_objs
