@@ -69,11 +69,6 @@ def set_blob_params(img_shape):
     # Set Inertia filtering parameters
     params.filterByInertia = True
     params.maxInertiaRatio = 0.6
-
-    # for debugging purposes, disable all filters -- TODO delete
-    # params.filterByCircularity = False
-    # params.filterByArea = False
-    # params.filterByInertia = False
     
     return params
 
@@ -188,6 +183,11 @@ def remove_horizontal2(img, gray):
     contours, hierarchy = cv2.findContours(detected_lines_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     # draw contours as white on image (aka erase lines)
     no_lines = cv2.drawContours(img.copy(), contours, -1, (255, 255, 255), 2)
+
+    # create black image to identify white lines onto
+    only_lines = np.zeros(img.shape[:2])
+    # make image with only identified lines
+    only_lines = cv2.drawContours(only_lines, contours, -1, (255, 255, 255), 2)
     
     # Repair image (notes)
     repair_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1,6))
@@ -196,7 +196,7 @@ def remove_horizontal2(img, gray):
     # display results
     # display_imgs([img, thresh, detected_lines_img, no_lines, result], ["image", "thresh", "detected lines", "contour img", "result"])
 
-    return result, no_lines
+    return result, no_lines, only_lines.astype("uint8")
 
 
 # remove vertical (note verticals) lines from image
