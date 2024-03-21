@@ -18,6 +18,7 @@ def note_to_number(note: str, octave: int) -> int:
 def create_note_num_array(note_objs):
     note_nums = []
     for note in note_objs:
+        if note.key == "N": continue
         OCTAVE = 4
         note_nums.append(note_to_number(note.key, OCTAVE))
 
