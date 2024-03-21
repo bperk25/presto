@@ -10,8 +10,6 @@ NOTES_IN_OCTAVE = len(NOTES)
 def note_to_number(note: str, octave: int) -> int:
     note = NOTES.index(note)
     note += (NOTES_IN_OCTAVE * octave)
-
-    assert 0 <= note <= 127
     return note
 
 
@@ -19,8 +17,7 @@ def create_note_num_array(note_objs):
     note_nums = []
     for note in note_objs:
         if note.key == "N": continue
-        OCTAVE = 4
-        note_nums.append(note_to_number(note.key, OCTAVE))
+        note_nums.append(note_to_number(note.key, note.octave))
 
     return note_nums
 

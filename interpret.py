@@ -116,12 +116,13 @@ def config_notes(base_lines: list[float], note_set: list[Note], gap_size: float,
         # Assign note properties
         for note in staff_dict[staff_id]: # for every note obj
             for key in note_ranges.keys(): # each possible note name
-                for r in note_ranges[key]: # each range for note name
+                for i, r in enumerate(note_ranges[key]): # each range for note name
                     if int(note.y) in range(r[0], r[1] + 1): # if note obj in note name range
                         note.staff_id = staff_id
                         note.id = note_count
                         note.key = key
                         note_count += 1
+                        note.octave += i
 
 
 

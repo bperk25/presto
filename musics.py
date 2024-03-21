@@ -9,7 +9,7 @@ class Staff:
 
 
 class Note:
-    def __init__(self, x, y, id=-1, staff_id=0, accidental=0, time=0) -> None:
+    def __init__(self, x, y, id=-1, staff_id=0, accidental=0, time=0, oct=4) -> None:
         self.id = id
         self.x, self.y = x, y
         self.key = "N"
@@ -17,6 +17,7 @@ class Note:
         self.accidental = accidental
         self.staff_id = staff_id
         self.time = time
+        self.octave = oct
 
     def debug_info(self):
         print(f"Note ID: {self.id}")
