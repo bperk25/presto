@@ -31,7 +31,7 @@ def display_imgs(imgs, titles=[]):
     num_rows = math.ceil(len(imgs) / num_imgs_per_row)  # num rows needed to display images
 
     for index, img in enumerate(imgs):
-        plt.subplot(num_imgs_per_row, num_rows, index + 1)
+        plt.subplot(num_rows, num_imgs_per_row, index + 1)
         plt.imshow(img)
         plt.axis('off')
         if titles:
@@ -76,7 +76,7 @@ def set_blob_params(img_shape):
 # Finds blobs of notes in image
 # inputs: image with horizontal lines removed, whether to display image or not
 # output: found keypoints for note blobs
-def find_blobs(img, display=False):
+def find_blobs(orig, img, display=False):
     params = set_blob_params(img.shape)
 
     # Set up the detector with parameters
@@ -95,11 +95,7 @@ def find_blobs(img, display=False):
 
     # show process images
     if display:
-        plt.imshow(img_w_keypts)
-        plt.axis('off')
-        plt.show()
-
-        display_imgs([img, img_w_keypts], ["original", "identified notes"])
+        display_imgs([orig, img_w_keypts], ["original", "identified notes"])
 
     # clean up once processes is done
     cv2.destroyAllWindows()
