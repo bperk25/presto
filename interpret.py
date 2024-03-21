@@ -108,18 +108,16 @@ def create_nrange_dict(line, gap_size, key_sig):
 '''
 def config_notes(base_lines: list[float], note_set: list[Note], gap_size: float, key_sig: list[str]=C_MAJOR):
     staff_dict = create_staff_dict(base_lines, note_set, gap_size)
-    # print([(k, [n.y for n in v]) for k, v in staff_dict.items()])
+
     note_count = 0
     for staff_id in staff_dict.keys():
         note_ranges = create_nrange_dict(base_lines[staff_id], gap_size, key_sig)
-        # print(f"{staff_id}: {note_ranges}\n")
+
         # Assign note properties
         for note in staff_dict[staff_id]: # for every note obj
-            # print(f"y: {note.y}, staff: {staff_id}, ranges: {note_ranges}\n")
             for key in note_ranges.keys(): # each possible note name
                 for r in note_ranges[key]: # each range for note name
                     if int(note.y) in range(r[0], r[1] + 1): # if note obj in note name range
-                        #print(f"y: {note.y}, staff: {staff_id}, ranges: {r}\n")
                         note.staff_id = staff_id
                         note.id = note_count
                         note.key = key

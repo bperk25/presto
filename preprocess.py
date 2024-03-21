@@ -28,7 +28,7 @@ def filter_img(input_file):
 # titles: optional, title for image corresponding to index. len must match len of imgs
 def display_imgs(imgs, titles=[]):
     num_imgs_per_row = 2
-    num_rows = math.ceil(len(imgs) / num_imgs_per_row)  # num rows needed
+    num_rows = math.ceil(len(imgs) / num_imgs_per_row)  # num rows needed to display images
 
     for index, img in enumerate(imgs):
         plt.subplot(num_imgs_per_row, num_rows, index + 1)
@@ -50,11 +50,11 @@ def set_blob_params(img_shape):
 
     params.filterByConvexity = False
 
-    # # Set Area filtering parameters -- TODO test to see if necessary, or set by width instead
+    # # Set Area filtering parameters
     params.filterByArea = True
-    # # 16 pixel note blob height on img of width 1258 pixels --> use 10 pixels for min area, 20 for max
-    # # use ratio of note height:img height, then scale to height of current image
-    # # divide by 2 to get radius instead of diameter
+    # 16 pixel note blob height on img of width 1258 pixels --> use 10 pixels for min area, 20 for max
+    # use ratio of note height:img height, then scale to height of current image
+    # divide by 2 to get radius instead of diameter
     min_pixel_radius = int(((8 / 1258) * W) / 2)
     max_pixel_radius = int(((25 / 1258) * W) / 2)
     # # compute min area from estimated pixel radius of note blob
@@ -152,27 +152,20 @@ def get_cropped_notes(blobs, full_img, save=False):
 
 
 ##  ---------  Line Removal  -------------
+
 '''
     Remove horizontal lines from input img
     input:
-        img -> cv2 original sheet music image
-        len -> length of kernel line
-        kern_size -> size of blur kernel
-        sig -> sigma for Gaussian blur
+        img -> cv2 original sheet music image (3-channel)
+        gray -> cv2 grayscale sheet music image
 
     output:
-        no_lines -> image reconstructed around removed lines
+        result -> image reconstructed around removed lines
+        no_lines -> image with staff lines deleted, but notes not reconstructed
+        only_lines -> image with just identified staff lines masked out, used in line detector
 '''
-def remove_horizontal(img, len=13, kern_size=5, sig=0):
-    hor_lines = horizontal_canny(img.copy(), len)
-    hor_lines = cv2.GaussianBlur(hor_lines, (kern_size, kern_size), sig)
-    no_lines = img*(hor_lines == 0) + 255*(hor_lines > 0)
-    return np.uint8(no_lines)
-
-
-# remove horizontal (staff) lines from image
-# https://stackoverflow.com/questions/46274961/removing-horizontal-lines-in-image-opencv-python-matplotlib
-def remove_horizontal2(img, gray):
+# based on a process described here: https://stackoverflow.com/questions/46274961/removing-horizontal-lines-in-image-opencv-python-matplotlib
+def remove_horizontal(img, gray):
     thresh = cv2.threshold(gray.copy(), 127, 255, cv2.THRESH_BINARY_INV)[1]
     
     # Remove horizontal
@@ -194,9 +187,6 @@ def remove_horizontal2(img, gray):
     repair_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1,6))
     result = 255 - cv2.morphologyEx(255 - no_lines, cv2.MORPH_CLOSE, repair_kernel, iterations=1)
 
-    # display results
-    # display_imgs([img, thresh, detected_lines_img, no_lines, result], ["image", "thresh", "detected lines", "contour img", "result"])
-
     return result, no_lines, only_lines.astype("uint8")
 
 
@@ -214,15 +204,6 @@ def remove_vertical(img):
 
 
 ## ---------  Line Detection  -------------
-
-# canny on crack
-def horizontal_canny(img, len=13):
-    img = cv2.Canny(img, 200, 200)
-    horizontal_kernel = np.ones((1, len), np.uint8)
-    horizontal_lines = cv2.erode(img, horizontal_kernel, iterations=2)
-    return horizontal_lines
-
-
 '''
     Finds y coordinates of staff lines using HoughLines
     input:
@@ -247,7 +228,6 @@ def get_line_coords(img, edges, min_gap=3, show_img=False):
         low_thresh = ys[-1] - min_gap
         hi_thresh = ys[-1] + min_gap + 1
         if y1 not in range(low_thresh, hi_thresh):
-            # cv2.line(img, (x1, y1), (x2, y2), (255, 0, 0), 1)
             cv2.line(img, (0, y1), (edges.shape[0]//2, y2), (255, 0, 0), 1)
             ys.append(y1)
 
@@ -279,7 +259,6 @@ def refine_line_coords(ys: list[float]) -> list[float]:
         dif_above = ys[i] - ys[i - 1] if i > 0 else max_gap + 1
         dif_below = ys[i + 1] - ys[i] if i < len(ys) - 1 else max_gap + 1
         if dif_above <= max_gap or dif_below <= max_gap:
-            # print((max_gap, dif_above, dif_below))
             refined_ys.append(ys[i])
 
     return refined_ys, avg_gap
@@ -291,7 +270,6 @@ def get_base_lines(img, edges, min_gap=3, show_img=False):
     base_lines = [ys[i + 1] for i in range(len(gaps) - 1) if gaps[i + 1] - gaps[i] > avg]
     base_lines.append(ys[-1])
 
-    # print(base_lines)
     return base_lines, avg
 
 
