@@ -1,40 +1,41 @@
 from midiutil import MIDIFile
 from mingus.core import chords
 
-def note_to_number(note: str, octave: int) -> int:
-    assert note in NOTES, errors['notes']
-    assert octave in OCTAVES, errors['notes']
 
+## ---------  MIDI Generation  -------------
+NOTES = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B']
+OCTAVES = list(range(11))
+NOTES_IN_OCTAVE = len(NOTES)
+
+def note_to_number(note: str, octave: int) -> int:
     note = NOTES.index(note)
     note += (NOTES_IN_OCTAVE * octave)
 
-    assert 0 <= note <= 127, errors['notes']
-
+    assert 0 <= note <= 127
     return note
 
 
-array_of_notes = []
-for chord in chord_progression:
-    array_of_notes.extend(chords.from_shorthand(chord))
+def create_note_num_array(note_objs):
+    note_nums = []
+    for note in note_objs:
+        OCTAVE = 4
+        note_nums.append(note_to_number(note.key, OCTAVE))
 
-array_of_note_numbers = []
-for note in array_of_notes:
-    OCTAVE = 4
-    array_of_note_numbers.append(note_to_number(note, OCTAVE))
+    return note_nums
 
-track = 0
-channel = 0
-time = 0  # In beats
-duration = 1  # In beats
-tempo = 120  # In BPM
-volume = 100  # 0-127, as per the MIDI standard
 
-MyMIDI = MIDIFile(1)  # One track, defaults to format 1 (tempo track is created
-# automatically)
-MyMIDI.addTempo(track, time, tempo)
+def create_midi(note_nums, filename = "output.mid", tempo = 120, volume = 100):
+    track = 0
+    channel = 0
+    time = 0  # In beats
+    duration = 1  # In beats
 
-for i, pitch in enumerate(array_of_note_numbers):
-    MyMIDI.addNote(track, channel, pitch, time + i, duration, volume)
+    MyMIDI = MIDIFile(1)  # One track, defaults to format 1 (tempo track is created
+    # automatically)
+    MyMIDI.addTempo(track, time, tempo)
 
-with open("pure-edm-fire-arpeggio.mid", "wb") as output_file:
-    MyMIDI.writeFile(output_file)
+    for i, pitch in enumerate(note_nums):
+        MyMIDI.addNote(track, channel, pitch, time + i, duration, volume)
+
+    with open(filename, "wb") as output_file:
+        MyMIDI.writeFile(output_file)
